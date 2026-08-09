@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { buildCockpitViewModel, createPollingCoordinator, createPreflightClient, normalizePreflightSnapshot } from "./preflight.ts";
+import { buildCockpitViewModel, buildSurfaceModel, createPollingCoordinator, createPreflightClient, normalizePreflightSnapshot } from "./preflight.ts";
 
 describe("Preflight adapter", () => {
   test("normalizes apps and release health", () => {
@@ -30,5 +30,14 @@ describe("Preflight adapter", () => {
       navigation: ["apps", "cockpit", "builds", "proof", "releases", "runners"],
       metrics: { apps: 1, releasePassing: 2, releaseTotal: 3 },
     });
+  });
+
+  test("builds native T3 surface cards for app and release readiness", () => {
+    const surface = buildSurfaceModel({ apps: [{ id: "a", name: "T3", status: "ready" }], release: { passing: 2, total: 3 } });
+    expect(surface.pluginId).toBe("com.t3code.preflight");
+    expect(surface.cards).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "release-health", value: "2/3" }),
+      expect.objectContaining({ id: "apps-list" }),
+    ]));
   });
 });
