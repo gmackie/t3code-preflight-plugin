@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { createPollingCoordinator, createPreflightClient, normalizePreflightSnapshot } from "./preflight.ts";
+import { buildCockpitViewModel, createPollingCoordinator, createPreflightClient, normalizePreflightSnapshot } from "./preflight.ts";
 
 describe("Preflight adapter", () => {
   test("normalizes apps and release health", () => {
@@ -23,5 +23,12 @@ describe("Preflight adapter", () => {
     const coordinator = createPollingCoordinator({ refresh: async () => ({ apps: [], release: { passing: 1, total: 1 } }) });
     expect(await coordinator.refresh()).toEqual({ apps: [], release: { passing: 1, total: 1 } });
     expect(coordinator.snapshot?.release.passing).toBe(1);
+  });
+
+  test("builds the app cockpit navigation and release metrics", () => {
+    expect(buildCockpitViewModel({ apps: [{ id: "a", name: "T3", status: "ready" }], release: { passing: 2, total: 3 } })).toEqual({
+      navigation: ["apps", "cockpit", "builds", "proof", "releases", "runners"],
+      metrics: { apps: 1, releasePassing: 2, releaseTotal: 3 },
+    });
   });
 });

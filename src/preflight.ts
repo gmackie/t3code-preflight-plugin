@@ -1,5 +1,6 @@
 type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 export type PreflightSnapshot = { apps: readonly { id: string; name: string; status: string }[]; release: { passing: number; total: number } };
+export type CockpitViewModel = { navigation: readonly string[]; metrics: { apps: number; releasePassing: number; releaseTotal: number } };
 
 async function get(input: { endpoint: string; token: string; fetchImpl: FetchLike }, path: string): Promise<any> {
   const response = await input.fetchImpl(`${input.endpoint.replace(/\/$/, "")}${path}`, { headers: { authorization: `Bearer ${input.token}` } });
@@ -10,6 +11,7 @@ async function get(input: { endpoint: string; token: string; fetchImpl: FetchLik
 export function normalizePreflightSnapshot(value: any): PreflightSnapshot {
   return { apps: Array.isArray(value?.apps) ? value.apps.map((app: any) => ({ id: String(app.id), name: String(app.name ?? app.slug ?? app.id), status: String(app.status ?? "unknown") })) : [], release: { passing: Number(value?.releaseStatus?.passing ?? 0), total: Number(value?.releaseStatus?.total ?? 0) } };
 }
+export function buildCockpitViewModel(snapshot: PreflightSnapshot): CockpitViewModel { return { navigation: ["apps", "cockpit", "builds", "proof", "releases", "runners"], metrics: { apps: snapshot.apps.length, releasePassing: snapshot.release.passing, releaseTotal: snapshot.release.total } }; }
 
 export function createPreflightClient(input: { endpoint: string; token: string; fetchImpl?: FetchLike }) {
   const transport = { ...input, fetchImpl: input.fetchImpl ?? fetch };
