@@ -35,7 +35,14 @@ describe("Preflight adapter", () => {
   test("builds the canonical release review workflow", () => {
     const workflow = buildReviewWorkflow({ apps: [{ id: "app-1", name: "App", status: "ready" }], release: { passing: 3, total: 4 } });
     expect(workflow.currentStage).toBe("verify");
-    expect(workflow.steps.find((step) => step.stage === "verify")?.state).toBe("active");
+    expect(workflow.evidence?.[0]?.kind).toBe("check");
+  });
+
+  test("advances the release workflow after approval", () => {
+    const workflow = buildReviewWorkflow({ apps: [], release: { passing: 1, total: 1 } }, { approved: true });
+    expect(workflow.currentStage).toBe("execute");
+    expect(workflow.steps.find((step) => step.stage === "approve")?.state).toBe("completed");
+    expect(workflow.steps.find((step) => step.stage === "verify")?.state).toBe("pending");
   });
 
   test("builds native T3 surface cards for app and release readiness", () => {

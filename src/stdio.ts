@@ -2,11 +2,23 @@ import { createPreflightClient, type PreflightSnapshot } from "./preflight.ts";
 import { createRpcHandler } from "./rpc.ts";
 
 let snapshot = JSON.parse(process.env.T3_PLUGIN_SNAPSHOT ?? '{"apps":[],"release":{"passing":0,"total":0}}') as PreflightSnapshot;
+const statePath = process.env.T3_PLUGIN_STATE_FILE;
+let workflowState = { approved: false };
+if (statePath) {
+  try {
+    const stored = JSON.parse(await Bun.file(statePath).text()) as { workflowState?: { approved?: boolean } };
+    workflowState.approved = stored.workflowState?.approved === true;
+  } catch {
+    // A missing or invalid state file starts from the safe unapproved state.
+  }
+}
 const client = process.env.T3_PLUGIN_ENDPOINT && process.env.T3_PLUGIN_TOKEN
   ? createPreflightClient({ endpoint: process.env.T3_PLUGIN_ENDPOINT, token: process.env.T3_PLUGIN_TOKEN })
   : null;
 const refresh = async () => { if (client) snapshot = await client.snapshot(); return snapshot; };
-const handler = createRpcHandler({ get snapshot() { return snapshot; }, refresh });
+const handler = createRpcHandler({ get snapshot() { return snapshot; }, refresh, workflowState, saveWorkflowState: async () => {
+  if (statePath) await Bun.write(statePath, JSON.stringify({ workflowState }));
+} });
 let buffer = "";
 process.stdin.setEncoding("utf8");
 process.stdin.on("data", (chunk) => {
@@ -16,7 +28,7 @@ process.stdin.on("data", (chunk) => {
   for (const line of lines) {
     if (!line.trim()) continue;
     try {
-      const request = JSON.parse(line) as { requestId: string; method: string; payload?: { navigationId?: string; workflowId?: string } };
+      const request = JSON.parse(line) as { requestId: string; method: string; payload?: { navigationId?: string; workflowId?: string; actionId?: string; input?: unknown } };
       void handler(request.method, request.payload).then((result: unknown) => process.stdout.write(`${JSON.stringify({ type: "plugin.response", requestId: request.requestId, ...(result as object) })}\n`));
     } catch (error) {
       process.stdout.write(`${JSON.stringify({ type: "plugin.response", requestId: "unknown", ok: false, error: error instanceof Error ? error.message : "invalid request" })}\n`);
