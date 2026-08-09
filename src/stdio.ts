@@ -16,7 +16,7 @@ process.stdin.on("data", (chunk) => {
   for (const line of lines) {
     if (!line.trim()) continue;
     try {
-      const request = JSON.parse(line) as { requestId: string; method: string; payload?: { navigationId?: string } };
+      const request = JSON.parse(line) as { requestId: string; method: string; payload?: { navigationId?: string; workflowId?: string } };
       void handler(request.method, request.payload).then((result: unknown) => process.stdout.write(`${JSON.stringify({ type: "plugin.response", requestId: request.requestId, ...(result as object) })}\n`));
     } catch (error) {
       process.stdout.write(`${JSON.stringify({ type: "plugin.response", requestId: "unknown", ok: false, error: error instanceof Error ? error.message : "invalid request" })}\n`);

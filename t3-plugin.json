@@ -1,1 +1,38 @@
-{"schemaVersion":1,"id":"com.t3code.preflight","displayName":"Preflight release cockpit","version":"0.2.0","runtime":{"kind":"managed-app","command":["preflight-t3-plugin"],"restart":"on-failure"},"contributes":{"navigation":[{"id":"preflight.apps","title":"Apps","path":"/apps"},{"id":"preflight.cockpit","title":"Cockpit","path":"/cockpit"},{"id":"preflight.builds","title":"Builds","path":"/builds"},{"id":"preflight.proof","title":"Proof","path":"/proof"},{"id":"preflight.releases","title":"Releases","path":"/releases"},{"id":"preflight.runners","title":"Runners","path":"/runners"}],"panels":[{"id":"preflight.readiness","title":"App readiness","surface":"project"},{"id":"preflight.releases","title":"Release status","surface":"thread.sidePanel"}],"settings":[{"id":"preflight.endpoint","title":"Preflight endpoint","scope":"server","field":{"kind":"text","default":"https://preflight.forgegraf.com"}},{"id":"preflight.token","title":"Preflight token","scope":"server","field":{"kind":"text","secret":true}},{"id":"preflight.polling-seconds","title":"Refresh interval","scope":"server","field":{"kind":"number","default":60,"min":15,"max":3600,"step":15}}],"settingsPanels":[{"id":"preflight.connection","title":"Preflight","description":"Track app builds, validation, and release readiness.","settingIds":["preflight.endpoint","preflight.token","preflight.polling-seconds"]}],"hooks":["turn.settled","runtime.error"]},"capabilities":[{"kind":"secrets.read","names":["PREFLIGHT_TOKEN"]},{"kind":"network.connect","hosts":["preflight.forgegraf.com"]},{"kind":"ui.embed","surfaces":["project","thread.sidePanel"]}]}
+{
+  "schemaVersion": 1,
+  "id": "com.t3code.preflight",
+  "displayName": "Preflight release cockpit",
+  "version": "0.2.0",
+  "runtime": { "kind": "managed-app", "command": ["preflight-t3-plugin"], "restart": "on-failure" },
+  "contributes": {
+    "navigation": [
+      { "id": "preflight.apps", "title": "Apps", "path": "/apps" },
+      { "id": "preflight.cockpit", "title": "Cockpit", "path": "/cockpit" },
+      { "id": "preflight.builds", "title": "Builds", "path": "/builds" },
+      { "id": "preflight.proof", "title": "Proof", "path": "/proof" },
+      { "id": "preflight.releases", "title": "Releases", "path": "/releases" },
+      { "id": "preflight.runners", "title": "Runners", "path": "/runners" }
+    ],
+    "panels": [
+      { "id": "preflight.readiness", "title": "App readiness", "surface": "project" },
+      { "id": "preflight.releases", "title": "Release status", "surface": "thread.sidePanel" }
+    ],
+    "workflows": [
+      { "id": "preflight.release-review", "title": "Release review", "surface": "thread.main" }
+    ],
+    "settings": [
+      { "id": "preflight.endpoint", "title": "Preflight endpoint", "scope": "server", "field": { "kind": "text", "default": "https://preflight.forgegraf.com" } },
+      { "id": "preflight.token", "title": "Preflight token", "scope": "server", "field": { "kind": "text", "secret": true } },
+      { "id": "preflight.polling-seconds", "title": "Refresh interval", "scope": "server", "field": { "kind": "number", "default": 60, "min": 15, "max": 3600, "step": 15 } }
+    ],
+    "settingsPanels": [
+      { "id": "preflight.connection", "title": "Preflight", "description": "Track app builds, validation, and release readiness.", "settingIds": ["preflight.endpoint", "preflight.token", "preflight.polling-seconds"] }
+    ],
+    "hooks": ["turn.settled", "runtime.error"]
+  },
+  "capabilities": [
+    { "kind": "secrets.read", "names": ["PREFLIGHT_TOKEN"] },
+    { "kind": "network.connect", "hosts": ["preflight.forgegraf.com"] },
+    { "kind": "ui.embed", "surfaces": ["project", "thread.sidePanel"] }
+  ]
+}

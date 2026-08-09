@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { buildCockpitViewModel, buildSurfaceModel, createPollingCoordinator, createPreflightClient, normalizePreflightSnapshot } from "./preflight.ts";
+import { buildCockpitViewModel, buildReviewWorkflow, buildSurfaceModel, createPollingCoordinator, createPreflightClient, normalizePreflightSnapshot } from "./preflight.ts";
 
 describe("Preflight adapter", () => {
   test("normalizes apps and release health", () => {
@@ -30,6 +30,12 @@ describe("Preflight adapter", () => {
       navigation: ["apps", "cockpit", "builds", "proof", "releases", "runners"],
       metrics: { apps: 1, releasePassing: 2, releaseTotal: 3 },
     });
+  });
+
+  test("builds the canonical release review workflow", () => {
+    const workflow = buildReviewWorkflow({ apps: [{ id: "app-1", name: "App", status: "ready" }], release: { passing: 3, total: 4 } });
+    expect(workflow.currentStage).toBe("verify");
+    expect(workflow.steps.find((step) => step.stage === "verify")?.state).toBe("active");
   });
 
   test("builds native T3 surface cards for app and release readiness", () => {
