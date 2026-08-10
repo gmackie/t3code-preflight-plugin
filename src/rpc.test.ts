@@ -19,4 +19,20 @@ describe("Preflight RPC", () => {
     expect(saved).toBe(true);
     await expect(handler("workflow.get", { workflowId: "preflight.release-review" })).resolves.toMatchObject({ result: { currentStage: "execute" } });
   });
+
+  test("executes an approved release through the plugin callback", async () => {
+    let executed = false;
+    let saved = false;
+    const handler = createRpcHandler({
+      snapshot: { apps: [], release: { passing: 1, total: 1 } },
+      refresh: async () => ({ apps: [], release: { passing: 1, total: 1 } }),
+      workflowState: { approved: true, executionRequested: false },
+      saveWorkflowState: async () => { saved = true; },
+      executeRelease: async (input) => { executed = input.platform === "ios"; return { releaseId: "release-1" }; },
+    });
+    await expect(handler("action.execute", { actionId: "execute", input: { workflowId: "preflight.release-review", platform: "ios" } })).resolves.toMatchObject({ ok: true, result: { status: "accepted" } });
+    expect(executed).toBe(true);
+    expect(saved).toBe(true);
+    await expect(handler("workflow.get", { workflowId: "preflight.release-review" })).resolves.toMatchObject({ result: { currentStage: "verify" } });
+  });
 });

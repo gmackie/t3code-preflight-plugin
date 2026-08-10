@@ -1,7 +1,7 @@
 type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 export type PreflightSnapshot = { apps: readonly { id: string; name: string; status: string }[]; release: { passing: number; total: number } };
 export type ReviewWorkflowModel = { readonly pluginId: string; readonly workflowId: string; readonly title: string; readonly currentStage: "inspect" | "context" | "propose" | "review" | "approve" | "execute" | "verify" | "respond"; readonly refreshedAt: string; readonly steps: readonly { id: string; stage: ReviewWorkflowModel["currentStage"]; title: string; state: "pending" | "active" | "completed" | "blocked" | "failed"; detail?: string }[]; readonly evidence?: readonly { id: string; title: string; kind: "check" | "artifact" | "diff" | "log" | "link"; status: "neutral" | "positive" | "warning" | "negative"; detail?: string; url?: string }[]; readonly actions?: readonly { id: string; title: string; tone?: "primary" | "secondary" | "destructive" }[] };
-export function buildReviewWorkflow(snapshot: PreflightSnapshot, state: { readonly approved?: boolean } = {}): ReviewWorkflowModel {
+export function buildReviewWorkflow(snapshot: PreflightSnapshot, state: { readonly approved?: boolean; readonly executionRequested?: boolean } = {}): ReviewWorkflowModel {
   const releaseReady = snapshot.release.total > 0 && snapshot.release.passing === snapshot.release.total;
   const steps = [
     { id: "inspect", stage: "inspect" as const, title: "Inspect app state", state: "completed" as const },
@@ -9,11 +9,11 @@ export function buildReviewWorkflow(snapshot: PreflightSnapshot, state: { readon
     { id: "propose", stage: "propose" as const, title: "Propose release response", state: "completed" as const },
     { id: "review", stage: "review" as const, title: "Review release plan", state: "completed" as const },
     { id: "approve", stage: "approve" as const, title: "Approve release", state: state.approved ? "completed" as const : "pending" as const },
-    { id: "execute", stage: "execute" as const, title: "Execute release pipeline", state: state.approved ? "active" as const : "pending" as const },
-    { id: "verify", stage: "verify" as const, title: "Verify release checks", state: state.approved ? "pending" as const : releaseReady ? "completed" as const : "active" as const, detail: `${snapshot.release.passing}/${snapshot.release.total} checks passing` },
+    { id: "execute", stage: "execute" as const, title: "Execute release pipeline", state: state.executionRequested ? "completed" as const : state.approved ? "active" as const : "pending" as const },
+    { id: "verify", stage: "verify" as const, title: "Verify release checks", state: state.executionRequested ? "active" as const : state.approved ? "pending" as const : releaseReady ? "completed" as const : "active" as const, detail: `${snapshot.release.passing}/${snapshot.release.total} checks passing` },
     { id: "respond", stage: "respond" as const, title: "Prepare release response", state: "pending" as const },
   ];
-  return { pluginId: "com.t3code.preflight", workflowId: "preflight.release-review", title: "Release review", currentStage: state.approved ? "execute" : releaseReady ? "approve" : "verify", refreshedAt: new Date().toISOString(), steps, evidence: [{ id: "release-checks", title: "Release checks", kind: "check", status: releaseReady ? "positive" : "warning", detail: `${snapshot.release.passing}/${snapshot.release.total} checks passing` }], actions: state.approved ? [] : [{ id: "approve", title: "Approve release action", tone: "primary" }] };
+  return { pluginId: "com.t3code.preflight", workflowId: "preflight.release-review", title: "Release review", currentStage: state.executionRequested ? "verify" : state.approved ? "execute" : releaseReady ? "approve" : "verify", refreshedAt: new Date().toISOString(), steps, evidence: [{ id: "release-checks", title: "Release checks", kind: "check", status: releaseReady ? "positive" : "warning", detail: `${snapshot.release.passing}/${snapshot.release.total} checks passing` }], actions: state.executionRequested ? [] : state.approved ? [{ id: "execute", title: "Execute release pipeline", tone: "primary" }] : [{ id: "approve", title: "Approve release action", tone: "primary" }] };
 }
 export type CockpitViewModel = { navigation: readonly string[]; metrics: { apps: number; releasePassing: number; releaseTotal: number } };
 export type SurfaceCard =
@@ -47,7 +47,7 @@ export function buildSurfaceModel(snapshot: PreflightSnapshot, navigationId = "p
 
 export function createPreflightClient(input: { endpoint: string; token: string; fetchImpl?: FetchLike }) {
   const transport = { ...input, fetchImpl: input.fetchImpl ?? fetch };
-  return { async snapshot() { const apps = await get(transport, "/api/preflight/v1/apps"); const releaseStatus = await get(transport, "/api/preflight/v1/release-status?platform=ios"); return normalizePreflightSnapshot({ apps: apps.apps ?? apps.data?.apps ?? apps, releaseStatus: releaseStatus.releaseStatus ?? releaseStatus.data?.releaseStatus ?? releaseStatus }); } };
+  return { async snapshot() { const apps = await get(transport, "/api/preflight/v1/apps"); const releaseStatus = await get(transport, "/api/preflight/v1/release-status?platform=ios"); return normalizePreflightSnapshot({ apps: apps.apps ?? apps.data?.apps ?? apps, releaseStatus: releaseStatus.releaseStatus ?? releaseStatus.data?.releaseStatus ?? releaseStatus }); }, async startRelease(input: { platform?: string }) { const response = await transport.fetchImpl(`${transport.endpoint.replace(/\/$/u, "")}/api/preflight/v1/releases`, { method: "POST", headers: { authorization: `Bearer ${transport.token}`, "content-type": "application/json" }, body: JSON.stringify(input) }); if (!response.ok) throw new Error(`Preflight POST /api/preflight/v1/releases failed: ${response.status}`); return response.json() as Promise<{ releaseId?: string }>; } };
 }
 
 export function normalizePollingSeconds(value: number | undefined): number { return Math.min(3600, Math.max(15, Math.floor(value ?? 60))); }
