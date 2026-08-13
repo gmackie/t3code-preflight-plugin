@@ -3,7 +3,7 @@
   "id": "com.t3code.preflight",
   "displayName": "Preflight release cockpit",
   "version": "0.2.0",
-  "runtime": { "kind": "managed-app", "command": ["preflight-t3-plugin"], "restart": "on-failure" },
+  "runtime": { "kind": "managed-app", "command":["bun","src/stdio.ts"], "restart": "on-failure" },
   "contributes": {
     "navigation": [
       { "id": "preflight.apps", "title": "Apps", "path": "/apps" },
