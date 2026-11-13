@@ -134,6 +134,26 @@ describe("Preflight MCP server", () => {
     expect(await state.get("ios")).toMatchObject({ approved: true, executionRequested: false });
   });
 
+  it("reports a queued release as success when the follow-up status read fails", async () => {
+    const fake = upstream({ failStatusAfterRelease: 503 });
+    const state = (await import("./state.ts")).memoryReviewStore();
+    const { client } = await connectedClient({ endpoint: fake.url, state });
+    await call(client, "preflight_release_approve");
+    const done = await call<{ platform: string; release: { releaseId: string }; state: { executionRequested: boolean; releaseId: string }; refreshError: string; workflow?: unknown }>(
+      client,
+      "preflight_release_execute",
+    );
+    expect(done.isError).toBeFalsy();
+    expect(done.content[0]?.text).toStartWith("Preflight queued release rel-1 for ios.");
+    expect(done.content[0]?.text).toContain("could not be refreshed (Preflight is temporarily unavailable (503))");
+    expect(done.content[0]?.text).not.toContain(fake.url);
+    expect(done.structuredContent).toMatchObject({ platform: "ios", release: { releaseId: "rel-1" }, state: { executionRequested: true, releaseId: "rel-1" }, refreshError: "Preflight is temporarily unavailable (503)" });
+    expect(done.structuredContent?.workflow).toBeUndefined();
+    expect(await state.get("ios")).toMatchObject({ approved: true, executionRequested: true, releaseId: "rel-1" });
+    expect(fake.requests).toContain("GET /api/preflight/v1/release-status?platform=ios");
+    expect(fake.releases).toEqual([{ platform: "ios" }]);
+  });
+
   it("shares approval between plugin copies through the state file", async () => {
     // T3 runs one stdio copy per agent session plus one in its pool: a panel
     // approves in one process and the agent executes from another.

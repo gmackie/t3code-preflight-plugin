@@ -8,7 +8,8 @@ import { memoryReviewStore, type ReleaseReviewStore } from "./state.ts";
 
 export const TOKEN = "test-token";
 
-export function fakePreflight(options: { failWith?: number; release?: { passing: number; total: number } } = {}) {
+// failStatusAfterRelease: once a release is queued, release-status answers with this status.
+export function fakePreflight(options: { failWith?: number; failStatusAfterRelease?: number; release?: { passing: number; total: number } } = {}) {
   const releases: { platform?: string }[] = [];
   const requests: string[] = [];
   const server = Bun.serve({
@@ -18,6 +19,7 @@ export function fakePreflight(options: { failWith?: number; release?: { passing:
       requests.push(`${request.method} ${url.pathname}${url.search}`);
       if (request.headers.get("authorization") !== `Bearer ${TOKEN}`) return Response.json({ error: "unauthorized" }, { status: 401 });
       if (options.failWith) return new Response(`upstream exploded at ${url.href}`, { status: options.failWith });
+      if (options.failStatusAfterRelease && releases.length > 0 && url.pathname === "/api/preflight/v1/release-status") return new Response(`upstream exploded at ${url.href}`, { status: options.failStatusAfterRelease });
       if (request.method === "GET" && url.pathname === "/api/preflight/v1/apps")
         return Response.json({ apps: [{ id: "app-1", name: "T3 <Mobile>", status: "ready" }, { id: "app-2", slug: "t3-desktop", status: "building" }] });
       if (request.method === "GET" && url.pathname === "/api/preflight/v1/release-status")

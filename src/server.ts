@@ -5,7 +5,7 @@ import { z } from "zod";
 import { buildCockpitViewModel, buildReviewWorkflow, buildSurfaceModel, isReleaseReady, type PreflightClient } from "./preflight.ts";
 import type { ReleaseReviewStore } from "./state.ts";
 import { VIEWS, viewHtml, type ViewName } from "./views/html.ts";
-import type { ReadinessData, ReviewData } from "./views/render.ts";
+import type { ExecuteData, ReadinessData, ReviewData } from "./views/render.ts";
 
 export const SERVER_INFO = { name: "preflight", version: "0.3.0" } as const;
 export const DEFAULT_PLATFORM = "ios";
@@ -125,9 +125,19 @@ export function createPreflightMcpServer(options: PreflightServerOptions): McpSe
         if (!state.approved) throw new Error(`The ${name} release must be approved in the Preflight release review before execution.`);
         if (state.executionRequested) throw new Error(`The ${name} release was already executed${state.releaseId ? ` as ${state.releaseId}` : ""}. Start a new review to release again.`);
         const release = await preflight.startRelease({ platform: name });
-        await options.state.save(name, { approved: true, executionRequested: true, ...(release.releaseId ? { releaseId: release.releaseId } : {}) });
-        const data = { ...(await review(name)), release };
-        return { data, text: release.releaseId ? `Preflight queued release ${release.releaseId} for ${name}.` : `Preflight accepted the ${name} release request.` };
+        const executed = { approved: true, executionRequested: true, ...(release.releaseId ? { releaseId: release.releaseId } : {}) };
+        await options.state.save(name, executed);
+        const text = release.releaseId ? `Preflight queued release ${release.releaseId} for ${name}.` : `Preflight accepted the ${name} release request.`;
+        // The release is queued and recorded from here on, so a failed refresh
+        // must not turn it into an error: that would invite a retry the
+        // approval gate then rejects as "already executed".
+        try {
+          return { data: { ...(await review(name)), release } satisfies ExecuteData, text };
+        } catch (cause) {
+          const refreshError = cause instanceof Error ? cause.message : String(cause);
+          const data: ExecuteData = { platform: name, state: executed, release, refreshError };
+          return { data, text: `${text} The release status could not be refreshed (${refreshError}); check it with preflight_release_review.` };
+        }
       }),
   );
 

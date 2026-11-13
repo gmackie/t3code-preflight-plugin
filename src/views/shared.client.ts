@@ -1,5 +1,6 @@
 import { createViewBridge, toolData, type HostContext, type ViewBridge } from "./bridge.ts";
-import { esc, renderReview, type ReviewData } from "./render.ts";
+import { buildReviewWorkflow } from "../preflight.ts";
+import { esc, renderReview, type ExecuteData, type ReviewData } from "./render.ts";
 
 // host-context-changed may carry only the changed fields, so merge them.
 export function startView(name: string): ViewBridge {
@@ -59,12 +60,30 @@ export function mountReview(bridge: ViewBridge, root: HTMLElement) {
     const args = { platform: data.platform };
     if (action === "refresh-review") void refresh();
     if (action === "approve") void run(async () => (toolData(await bridge.callTool("preflight_release_approve", args)), reload()));
-    if (action === "execute") void run(async () => (toolData(await bridge.callTool("preflight_release_execute", args)), reload()));
+    if (action === "execute")
+      void run(async () => {
+        const executed = toolData<ExecuteData>(await bridge.callTool("preflight_release_execute", args));
+        if (!("refreshError" in executed)) {
+          data = executed;
+          return;
+        }
+        // Queued, but Preflight's status read failed: show the recorded
+        // release and try the refresh once more.
+        if (data) data = { ...data, state: executed.state, workflow: buildReviewWorkflow(data.snapshot, executed.state) };
+        await reload().catch((cause) => {
+          throw new Error(`Release requested, but the review could not be refreshed: ${cause instanceof Error ? cause.message : String(cause)}`);
+        });
+      });
     if (action === "reset") void run(async () => (toolData(await bridge.callTool("preflight_release_reset", args)), reload()));
   });
 
   return {
-    show(next: ReviewData) {
+    show(next: ExecuteData) {
+      // An execute result without a refreshed review: load it ourselves.
+      if ("refreshError" in next) {
+        platform = next.platform;
+        return void refresh();
+      }
       data = next;
       platform = next.platform;
       error = undefined;

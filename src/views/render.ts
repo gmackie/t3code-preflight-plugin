@@ -21,6 +21,10 @@ export type ReviewData = {
   release?: { releaseId?: string };
 };
 
+// preflight_release_execute result: the refreshed review, or, when the release
+// was queued but the follow-up status read failed, just the recorded state.
+export type ExecuteData = ReviewData | { platform: string; state: ReleaseReviewState; release: { releaseId?: string }; refreshError: string };
+
 export function esc(value: unknown): string {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
