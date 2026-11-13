@@ -1,38 +1,70 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "com.t3code.preflight",
   "displayName": "Preflight release cockpit",
-  "version": "0.2.0",
-  "runtime": { "kind": "managed-app", "command":["bun","src/stdio.ts"], "restart": "on-failure" },
-  "contributes": {
-    "navigation": [
-      { "id": "preflight.apps", "title": "Apps", "path": "/apps" },
-      { "id": "preflight.cockpit", "title": "Cockpit", "path": "/cockpit" },
-      { "id": "preflight.builds", "title": "Builds", "path": "/builds" },
-      { "id": "preflight.proof", "title": "Proof", "path": "/proof" },
-      { "id": "preflight.releases", "title": "Releases", "path": "/releases" },
-      { "id": "preflight.runners", "title": "Runners", "path": "/runners" }
-    ],
-    "panels": [
-      { "id": "preflight.readiness", "title": "App readiness", "surface": "project" },
-      { "id": "preflight.releases", "title": "Release status", "surface": "thread.sidePanel" }
-    ],
-    "workflows": [
-      { "id": "preflight.release-review", "title": "Release review", "surface": "thread.main" }
-    ],
-    "settings": [
-      { "id": "preflight.endpoint", "title": "Preflight endpoint", "scope": "server", "field": { "kind": "text", "default": "https://preflight.forgegraf.com" } },
-      { "id": "preflight.token", "title": "Preflight token", "scope": "server", "field": { "kind": "text", "secret": true } },
-      { "id": "preflight.polling-seconds", "title": "Refresh interval", "scope": "server", "field": { "kind": "number", "default": 60, "min": 15, "max": 3600, "step": 15 } }
-    ],
-    "settingsPanels": [
-      { "id": "preflight.connection", "title": "Preflight", "description": "Track app builds, validation, and release readiness.", "settingIds": ["preflight.endpoint", "preflight.token", "preflight.polling-seconds"] }
-    ],
-    "hooks": ["turn.settled", "runtime.error"]
+  "version": "0.3.0",
+  "description": "Track app readiness and release checks in Preflight, and run a human-approved release review.",
+  "mcpServer": {
+    "name": "preflight",
+    "transport": {
+      "type": "stdio",
+      "command": "bun",
+      "args": ["${pluginRoot}/src/mcp.ts"],
+      "env": [
+        {
+          "name": "PREFLIGHT_ENDPOINT",
+          "value": "https://preflight.forgegraf.com",
+          "title": "Preflight endpoint"
+        },
+        {
+          "name": "PREFLIGHT_TOKEN",
+          "value": "",
+          "sensitive": true,
+          "title": "Preflight token"
+        },
+        {
+          "name": "PREFLIGHT_POLL_SECONDS",
+          "value": "60",
+          "title": "Refresh interval in seconds (15-3600)"
+        },
+        {
+          "name": "PREFLIGHT_PLUGIN_STATE_PATH",
+          "value": "",
+          "title": "Shared release review state file",
+          "description": "Optional absolute SQLite path, shared by the server and agent copies."
+        }
+      ]
+    }
   },
-  "capabilities": [
-    { "kind": "secrets.read", "names": ["PREFLIGHT_TOKEN"] },
-    { "kind": "network.connect", "hosts": ["preflight.forgegraf.com"] },
-    { "kind": "ui.embed", "surfaces": ["project", "thread.sidePanel"] }
-  ]
+  "contributes": {
+    "panels": [
+      {
+        "id": "preflight-readiness",
+        "title": "App readiness",
+        "scope": "project",
+        "resourceUri": "ui://preflight/readiness.html",
+        "tool": { "name": "preflight_readiness", "arguments": {} }
+      },
+      {
+        "id": "preflight-releases",
+        "title": "Release status",
+        "scope": "thread",
+        "resourceUri": "ui://preflight/readiness.html",
+        "tool": { "name": "preflight_readiness", "arguments": {} }
+      }
+    ],
+    "commands": [
+      {
+        "id": "preflight-open-readiness",
+        "title": "Preflight: Open app readiness",
+        "panel": "preflight-readiness"
+      },
+      {
+        "id": "preflight-open-releases",
+        "title": "Preflight: Open release status",
+        "panel": "preflight-releases"
+      }
+    ]
+  },
+  "t3Tools": []
 }
