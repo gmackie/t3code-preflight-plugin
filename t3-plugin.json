@@ -2,38 +2,18 @@
   "schemaVersion": 2,
   "id": "com.t3code.preflight",
   "displayName": "Preflight release cockpit",
-  "version": "0.3.0",
-  "description": "Track app readiness and release checks in Preflight, and run a human-approved release review.",
+  "version": "0.4.0",
+  "description": "Track app readiness and store release progress in Preflight over its OAuth MCP server.",
   "mcpServer": {
     "name": "preflight",
     "transport": {
-      "type": "stdio",
-      "command": "bun",
-      "args": ["${pluginRoot}/src/mcp.ts"],
-      "env": [
-        {
-          "name": "PREFLIGHT_ENDPOINT",
-          "value": "https://preflight.forgegraf.com",
-          "title": "Preflight endpoint"
-        },
-        {
-          "name": "PREFLIGHT_TOKEN",
-          "value": "",
-          "sensitive": true,
-          "title": "Preflight token"
-        },
-        {
-          "name": "PREFLIGHT_POLL_SECONDS",
-          "value": "60",
-          "title": "Refresh interval in seconds (15-3600)"
-        },
-        {
-          "name": "PREFLIGHT_PLUGIN_STATE_PATH",
-          "value": "",
-          "title": "Shared release review state file",
-          "description": "Optional absolute SQLite path, shared by the server and agent copies."
-        }
-      ]
+      "type": "http",
+      "url": "https://preflight.forgegraf.com/api/mcp",
+      "headers": [],
+      "auth": {
+        "type": "oauth",
+        "scopes": ["preflight:read", "preflight:build"]
+      }
     }
   },
   "contributes": {

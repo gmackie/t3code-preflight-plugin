@@ -1,5 +1,7 @@
 # Preflight manifest v2 (T3CODE-75)
 
+> **Superseded in 0.4.0 (PREFLT-78).** The manifest now uses an `http` transport with `oauth` auth to `https://preflight.forgegraf.com/api/mcp`, and the local stdio server described below has been removed. `preflight_readiness` and its view are served by preflight-app. These notes record the 0.3.x design.
+
 `t3-plugin.json` follows the MCP-native plugin model from T3CODE-74, the same shape as the Bob plugin (v0.2.1). T3 loads this manifest into its server-owned MCP registry. The v1 manifest's last version is at commit dd1a7d1.
 
 ## Shape
