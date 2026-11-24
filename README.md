@@ -12,9 +12,9 @@ The plugin requests these scopes:
 
 | Scope | Tools |
 | --- | --- |
-| `preflight:read` | `preflight_readiness`, `list_apps`, `list_workflows`, `list_builds`, `list_workers`, `get_build_queue` |
+| `preflight:read` | `preflight_readiness`, `preflight_release_review`, `list_apps`, `list_workflows`, `list_builds`, `list_workers`, `get_build_queue` |
 | `preflight:build` | `start_build`, `cancel_build` |
-| `preflight:release-review` | Confirm or withdraw a review and upload its approved artifact to the selected destination |
+| `preflight:release-review` | `preflight_release_approve`, `preflight_release_execute`, `preflight_release_reset` |
 
 A signed-in owner or admin confirms the build, artifact digest, and destination in Preflight before a reviewed upload can execute. The plugin does not request the direct store-upload scope. Existing installations need a new consent grant to use reviewed uploads.
 
@@ -38,4 +38,4 @@ PREFLIGHT_OFFLINE=1 bun test  # shape only
 
 ## History
 
-Versions 0.3.x ran a local stdio MCP server (`bun src/mcp.ts`) authenticated with a pasted `PREFLIGHT_TOKEN`. That server's release approve/execute flow called `POST /api/preflight/v1/releases`, which Preflight never exposed, so it was dropped rather than ported. See `docs/manifest-v2.md` and commit 5a62c8f for that version.
+Versions 0.3.x ran a local stdio MCP server (`bun src/mcp.ts`) authenticated with a pasted `PREFLIGHT_TOKEN`. Version 0.4.0 moved readiness to the hosted service. Version 0.5.0 adds signed-in approval and a durable receipt for each reviewed upload. See `docs/manifest-v2.md` and commit 5a62c8f for that version.
