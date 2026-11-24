@@ -14,17 +14,20 @@ The plugin requests these scopes:
 | --- | --- |
 | `preflight:read` | `preflight_readiness`, `list_apps`, `list_workflows`, `list_builds`, `list_workers`, `get_build_queue` |
 | `preflight:build` | `start_build`, `cancel_build` |
+| `preflight:release-review` | Confirm or withdraw a review and upload its approved artifact to the selected destination |
 
-It deliberately leaves out `preflight:release` (`submit_build`, store uploads), so agents in T3 cannot upload a build to TestFlight or the stores. Do store uploads in Preflight, or through a separate connection that a person approves.
+A signed-in owner or admin confirms the build, artifact digest, and destination in Preflight before a reviewed upload can execute. The plugin does not request the direct store-upload scope. Existing installations need a new consent grant to use reviewed uploads.
 
 ## Panels
 
-Both panels render `ui://preflight/readiness.html`, which the server serves as an MCP Apps view, and run `preflight_readiness` when they open:
+The two readiness panels render `ui://preflight/readiness.html`, which the server serves as an MCP Apps view, and run `preflight_readiness` when they open:
 
 - **App readiness** (`preflight-readiness`, project scope)
 - **Release status** (`preflight-releases`, thread scope)
 
 The view shows the workspace's apps and each store-bound app's release stage, next step and owner, with an iOS/Android toggle. It refreshes every 60 seconds. Its tool and view live in preflight-app (`apps/nextjs/src/lib/mcp/readiness.ts`).
+
+The **Release review** thread panel opens `preflight_release_review` and displays `ui://preflight/release-review.html`. Approval, execution receipts, and withdrawal are stored in the selected workspace.
 
 ## Test
 

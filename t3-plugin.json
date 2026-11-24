@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "com.t3code.preflight",
   "displayName": "Preflight release cockpit",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Track app readiness and store release progress in Preflight over its OAuth MCP server.",
   "mcpServer": {
     "name": "preflight",
@@ -12,7 +12,7 @@
       "headers": [],
       "auth": {
         "type": "oauth",
-        "scopes": ["preflight:read", "preflight:build"]
+        "scopes": ["preflight:read", "preflight:build", "preflight:release-review"]
       }
     }
   },
@@ -31,6 +31,13 @@
         "scope": "thread",
         "resourceUri": "ui://preflight/readiness.html",
         "tool": { "name": "preflight_readiness", "arguments": {} }
+      },
+      {
+        "id": "preflight-release-review",
+        "title": "Release review",
+        "scope": "thread",
+        "resourceUri": "ui://preflight/release-review.html",
+        "tool": { "name": "preflight_release_review", "arguments": {} }
       }
     ],
     "commands": [
@@ -43,6 +50,11 @@
         "id": "preflight-open-releases",
         "title": "Preflight: Open release status",
         "panel": "preflight-releases"
+      },
+      {
+        "id": "preflight-open-release-review",
+        "title": "Preflight: Open release review",
+        "panel": "preflight-release-review"
       }
     ]
   },

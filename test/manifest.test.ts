@@ -7,14 +7,22 @@ it("connects to Preflight's OAuth MCP server without a stored token", () => {
   const { transport } = manifest.mcpServer;
   expect(transport.type).toBe("http");
   expect(endpoint).toBe("https://preflight.forgegraf.com/api/mcp");
-  expect(transport.auth).toEqual({ type: "oauth", scopes: ["preflight:read", "preflight:build"] });
+  expect(transport.auth).toEqual({ type: "oauth", scopes: ["preflight:read", "preflight:build", "preflight:release-review"] });
   // Store uploads (submit_build, preflight:release) stay out of agent reach.
   expect(transport.auth.scopes).not.toContain("preflight:release");
   expect(JSON.stringify(manifest)).not.toContain("PREFLIGHT_TOKEN");
 });
 
-it("opens every panel with the readiness tool and view", () => {
-  for (const panel of manifest.contributes.panels) {
+it("opens the existing readiness panels and the release review", () => {
+  const review = manifest.contributes.panels.find((panel) => panel.id === "preflight-release-review");
+  expect(review).toMatchObject({
+    scope: "thread",
+    resourceUri: "ui://preflight/release-review.html",
+    tool: { name: "preflight_release_review", arguments: {} },
+  });
+  const readiness = manifest.contributes.panels.filter((panel) => panel.id !== "preflight-release-review");
+  expect(readiness.map((panel) => panel.id).sort()).toEqual(["preflight-readiness", "preflight-releases"]);
+  for (const panel of readiness) {
     expect(panel.resourceUri).toBe("ui://preflight/readiness.html");
     expect(panel.tool.name).toBe("preflight_readiness");
   }
