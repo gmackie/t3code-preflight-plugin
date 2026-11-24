@@ -12,19 +12,22 @@ The plugin requests these scopes:
 
 | Scope | Tools |
 | --- | --- |
-| `preflight:read` | `preflight_readiness`, `list_apps`, `list_workflows`, `list_builds`, `list_workers`, `get_build_queue` |
+| `preflight:read` | `preflight_readiness`, `preflight_release_review`, `list_apps`, `list_workflows`, `list_builds`, `list_workers`, `get_build_queue` |
 | `preflight:build` | `start_build`, `cancel_build` |
+| `preflight:release-review` | `preflight_release_approve`, `preflight_release_execute`, `preflight_release_reset` |
 
-It deliberately leaves out `preflight:release` (`submit_build`, store uploads), so agents in T3 cannot upload a build to TestFlight or the stores. Do store uploads in Preflight, or through a separate connection that a person approves.
+A signed-in owner or admin confirms the build, artifact digest, and destination in Preflight before a reviewed upload can execute. The plugin does not request the direct store-upload scope. Existing installations need a new consent grant to use reviewed uploads.
 
 ## Panels
 
-Both panels render `ui://preflight/readiness.html`, which the server serves as an MCP Apps view, and run `preflight_readiness` when they open:
+The two readiness panels render `ui://preflight/readiness.html`, which the server serves as an MCP Apps view, and run `preflight_readiness` when they open:
 
 - **App readiness** (`preflight-readiness`, project scope)
 - **Release status** (`preflight-releases`, thread scope)
 
 The view shows the workspace's apps and each store-bound app's release stage, next step and owner, with an iOS/Android toggle. It refreshes every 60 seconds. Its tool and view live in preflight-app (`apps/nextjs/src/lib/mcp/readiness.ts`).
+
+The **Release review** thread panel opens `preflight_release_review` and displays `ui://preflight/release-review.html`. Approval, execution receipts, and withdrawal are stored in the selected workspace.
 
 ## Test
 
@@ -35,4 +38,4 @@ PREFLIGHT_OFFLINE=1 bun test  # shape only
 
 ## History
 
-Versions 0.3.x ran a local stdio MCP server (`bun src/mcp.ts`) authenticated with a pasted `PREFLIGHT_TOKEN`. That server's release approve/execute flow called `POST /api/preflight/v1/releases`, which Preflight never exposed, so it was dropped rather than ported. See `docs/manifest-v2.md` and commit 5a62c8f for that version.
+Versions 0.3.x ran a local stdio MCP server (`bun src/mcp.ts`) authenticated with a pasted `PREFLIGHT_TOKEN`. Version 0.4.0 moved readiness to the hosted service. Version 0.5.0 adds signed-in approval and a durable receipt for each reviewed upload. See `docs/manifest-v2.md` and commit 5a62c8f for that version.
